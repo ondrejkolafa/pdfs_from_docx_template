@@ -1,0 +1,38 @@
+*.xlsx
+*.docx
+
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pyzw
+
+# Virtual Environment
+venv/
+env/
+env.bak/
+env1/
+env2/
+.python-version
+
+# IDE
+.vscode/
+.idea/
+
+# Compiled files
+*.pyc
+*.pyo
+*.pyd
+
+# Logs and databases
+*.log
+*.sqlite3
+*.db
+
+# OS generated files
+.DS_Store
+Thumbs.db
