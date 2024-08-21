@@ -1,0 +1,4 @@
+docx2pdf
+openpyxl
+pandas
+python-docx
