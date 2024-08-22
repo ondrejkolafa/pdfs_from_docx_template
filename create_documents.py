@@ -42,6 +42,19 @@ def main(word_template_name, data_file_name, foldered, cleanup):
         print(f"File {output_file_name.replace('docx','pdf')} generated.\n")
 
 
+def get_default_file_name(suffix: str) -> str:
+    documents = glob.glob(suffix, recursive=False)
+    if len(documents) == 1:
+        return documents[0]
+    else:
+        return ""
+
+
+def get_possible_file_names(suffix: str) -> list:
+    documents = glob.glob(suffix, recursive=False)
+    return documents
+
+
 def get_new_file_name(word_template_name, foldered, unique_file_identifier):
     if foldered:
         folder_name = f"{OUTPUT_FOLDER}/doc_{unique_file_identifier}"
@@ -90,6 +103,7 @@ def load_data(data_file_name):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("-m", "--manual", action="store_true", help="No interactive mode, all parameters must be entered.")
     parser.add_argument("-w", "--word", help="Name of the word template file")
     parser.add_argument("-e", "--excel", help="Name of the excel data file")
     parser.add_argument("-f", "--foldered", action="store_true", help="Output files will be saved in diferrent folders")
@@ -99,35 +113,58 @@ if __name__ == "__main__":
     foldered = False
     cleanup = False
 
-    if args.word:
-        print("Using Word template: % s" % args.word)
-        word_template_name = args.word
+    if not args.manual:
+        print("\n--------------\nInteractive mode\n")
+        print("Please provide the following parameters:")
+
+        word_template_name = get_default_file_name("*.docx")
+        default_word_template_name_yn = input(f"Do you want to use this word template file: {word_template_name} (y/n): ")
+        if default_word_template_name_yn.lower() != "y":
+            word_template_name = input(
+                f"What is the name of the Word template file? There are those options: ({str(get_possible_file_names('*.docx'))})"
+            )
+
+        data_file_name = get_default_file_name("*.xlsx")
+        default_data_file_name_yn = input(f"Do you want to use this word template file: {data_file_name} (y/n): ")
+        if default_data_file_name_yn.lower() != "y":
+            data_file_name = input(
+                f"What is the name of the Word template file? There are those options: ({str(get_possible_file_names('*.xlsx'))})"
+            )
+
+        foldered_yn = input("Output files will be saved in diferrent folders (y/n): ")
+        cleanup_yn = input("Docx files will be deleted after conversion (y/n): ")
+
+        if foldered_yn.lower() == "y":
+            foldered = True
+        if cleanup_yn.lower() == "y":
+            cleanup = True
+
     else:
-        documents = glob.glob("*.docx", recursive=False)
-        if len(documents) == 1:
-            word_template_name = documents[0]
+        if args.word:
+            print("Using Word template: % s" % args.word)
+            word_template_name = args.word
         else:
-            print("\n--------------\nError: Excel data file not provided.")
-            exit()
+            word_template_name = get_default_file_name("*.docx")
+            if not word_template_name:
+                print("\n--------------\nError: Word template file not provided.")
+                exit()
 
-    if args.excel:
-        print("Using Excel data: % s" % args.excel)
-        data_file_name = args.excel
-    else:
-        excels = glob.glob("*.xlsx", recursive=False)
-        if len(excels) == 1:
-            data_file_name = excels[0]
+        if args.word:
+            print("Using Excel data file: % s" % args.excel)
+            data_file_name = args.excel
         else:
-            print("\n--------------\nError: Excel data file not provided.")
-            exit()
+            data_file_name = get_default_file_name("*.xlsx")
+            if not data_file_name:
+                print("\n--------------\nError: Excel data file not provided.")
+                exit()
 
-    if args.foldered:
-        foldered = True
-        print("Output files will be saved in diferrent folders.")
+        if args.foldered:
+            foldered = True
+            print("Output files will be saved in diferrent folders.")
 
-    if args.cleanup:
-        cleanup = True
-        print("Docx files will be deleted after conversion.")
+        if args.cleanup:
+            cleanup = True
+            print("Docx files will be deleted after conversion.")
 
     print("\n")
     print(f"Creating documents from {data_file_name} using {word_template_name}")
