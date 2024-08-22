@@ -43,6 +43,6 @@ GOTO eof
 :eof
  
 CLS
-python create_documents.py -f
+python create_documents.py
  
 PAUSE

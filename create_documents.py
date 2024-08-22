@@ -9,9 +9,9 @@ import pandas as pd
 OUTPUT_FOLDER = "output"
 
 
-def main(word_template_name, data_file_name, foldered, cleanup):
+def main(word_template_name, data_file_name, foldered, cleanup, manual):
 
-    data_dict, unique_column_name = load_data(data_file_name)
+    data_dict, unique_column_name = load_data(data_file_name, manual)
 
     doc = DocxTemplate(word_template_name)
 
@@ -82,16 +82,26 @@ def get_unique_file_identifier(unique_column_name, k, data):
     return unique_file_identifier
 
 
-def load_data(data_file_name):
+def load_data(data_file_name, manual=False):
     try:
         data = pd.read_excel(data_file_name)
         data_dict = data.to_dict("index")
 
         unique_columns = data.columns[data.nunique() == data.count()]
 
-        print(f"Uniqness: {unique_columns}")
         if not unique_columns.empty:
             unique_column_name = unique_columns[0]
+        else:
+            unique_column_name = ""
+
+        if not manual:
+            default_unique_column_name_yn = input(f"Can this column be used as a unique file name tag? *{unique_column_name}* (y/n): ")
+            if default_unique_column_name_yn.lower() != "y":
+                unique_column_name = input(
+                    f"Which column should be used as unique identifier? There are those options: ({str(unique_columns)})"
+                )
+            else:
+                unique_column_name = unique_columns[0]
 
     except FileNotFoundError:
         print(f"\n--------------\nError: Excel data file not found: {data_file_name}")
@@ -112,6 +122,7 @@ if __name__ == "__main__":
 
     foldered = False
     cleanup = False
+    manual = False
 
     if not args.manual:
         print("\n--------------\nInteractive mode\n")
@@ -140,6 +151,7 @@ if __name__ == "__main__":
             cleanup = True
 
     else:
+        print("\n--------------\nManual mode\n")
         if args.word:
             print("Using Word template: % s" % args.word)
             word_template_name = args.word
@@ -166,6 +178,8 @@ if __name__ == "__main__":
             cleanup = True
             print("Docx files will be deleted after conversion.")
 
+        manual = True
+
     print("\n")
     print(f"Creating documents from {data_file_name} using {word_template_name}")
-    main(word_template_name, data_file_name, foldered, cleanup)
+    main(word_template_name, data_file_name, foldered, cleanup, manual)
