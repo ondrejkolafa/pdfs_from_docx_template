@@ -5,6 +5,8 @@ from docxtpl import DocxTemplate
 import docx2pdf
 import os
 import pandas as pd
+import re
+import sys
 
 OUTPUT_FOLDER = "output"
 
@@ -16,13 +18,14 @@ def main(word_template_name, data_file_name, foldered, cleanup, manual):
     doc = DocxTemplate(word_template_name)
 
     for k, data in data_dict.items():
+        print(f"Creating document {k}...")
         context = {key: str(value) for key, value in data.items()}
         print(f"Parsing data line: {context}")
 
         try:
             doc.render(context)
         except PackageNotFoundError:
-            print(f"\n--------------\nError: Word template file not found: {word_template_name}")
+            print('\033[31m' + f"\n--------------\nError: Word template file not found: {word_template_name}")
             exit()
 
         prepare_output_folder()
@@ -42,17 +45,17 @@ def main(word_template_name, data_file_name, foldered, cleanup, manual):
         print(f"File {output_file_name.replace('docx','pdf')} generated.\n")
 
 
-def get_default_file_name(suffix: str) -> str:
-    documents = glob.glob(suffix, recursive=False)
-    if len(documents) == 1:
-        return documents[0]
-    else:
-        return ""
-
-
 def get_possible_file_names(suffix: str) -> list:
     documents = glob.glob(suffix, recursive=False)
     return documents
+
+
+def get_default_file_name(suffix: str) -> str:
+    documents = get_possible_file_names(suffix)
+    if len(documents) == 1:
+        return documents[0]
+    else:
+        return documents
 
 
 def get_new_file_name(word_template_name, foldered, unique_file_identifier):
@@ -82,23 +85,33 @@ def get_unique_file_identifier(unique_column_name, k, data):
     return unique_file_identifier
 
 
+def validate_column_names(columns):
+    for column in columns:
+        if not re.match(r'^\w+$', column):
+            print('\033[31m' +  f"\n--------------\nError: Column name must contain only alphanumeric characters and underscore (abc123_): *{column}*")
+            sys.exit()
+
+
 def load_data(data_file_name, manual=False):
     try:
         data = pd.read_excel(data_file_name)
         data_dict = data.to_dict("index")
+
+        validate_column_names(data.columns)
 
         unique_columns = data.columns[data.nunique() == data.count()]
 
         if not unique_columns.empty:
             unique_column_name = unique_columns[0]
         else:
-            unique_column_name = ""
+            unique_column_name = None
 
-        if not manual:
+        if not manual and unique_column_name:
             default_unique_column_name_yn = input(f"Can this column be used as a unique file name tag? *{unique_column_name}* (y/n): ")
             if default_unique_column_name_yn.lower() != "y":
+                print("Which column should be used as unique identifier? If you don't see the column you want, you probably have duplicated records in your data (e.g. two persons with the same surname).")
                 unique_column_name = input(
-                    f"Which column should be used as unique identifier? There are those options: ({str(unique_columns)})"
+                    f"There are those options in the data: ({str(unique_columns)}): "
                 )
             else:
                 unique_column_name = unique_columns[0]
@@ -129,17 +142,23 @@ if __name__ == "__main__":
         print("Please provide the following parameters:")
 
         word_template_name = get_default_file_name("*.docx")
-        default_word_template_name_yn = input(f"Do you want to use this word template file: {word_template_name} (y/n): ")
+        if type(word_template_name) == list:
+            default_word_template_name_yn = "n"
+        else:
+            default_word_template_name_yn = input(f"Do you want to use this word template file: {word_template_name} (y/n): ")
         if default_word_template_name_yn.lower() != "y":
             word_template_name = input(
-                f"What is the name of the Word template file? There are those options: ({str(get_possible_file_names('*.docx'))})"
+                f"What is the name of the Word template file? There are those options: ({', '.join(get_possible_file_names('*.docx'))}) "
             )
 
         data_file_name = get_default_file_name("*.xlsx")
-        default_data_file_name_yn = input(f"Do you want to use this word template file: {data_file_name} (y/n): ")
+        if type(data_file_name) == list:
+            default_data_file_name_yn = "n"
+        else:
+            default_data_file_name_yn = input(f"Do you want to use this Excel template file: {data_file_name} (y/n): ")
         if default_data_file_name_yn.lower() != "y":
             data_file_name = input(
-                f"What is the name of the Word template file? There are those options: ({str(get_possible_file_names('*.xlsx'))})"
+                f"What is the name of the Excel template file? There are those options: ({', '.join(get_possible_file_names('*.xlsx'))}) "
             )
 
         foldered_yn = input("Output files will be saved in diferrent folders (y/n): ")

@@ -1,4 +1,5 @@
 docx2pdf
+docxtpl
 openpyxl
 pandas
 python-docx
